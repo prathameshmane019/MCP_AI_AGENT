@@ -1,0 +1,10 @@
+# Node
+**/node_modules
+**/dist
+**/.next
+
+# Logs
+*.log
+
+# OS
+.DS_Store
