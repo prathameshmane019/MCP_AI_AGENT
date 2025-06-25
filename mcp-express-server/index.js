@@ -5,9 +5,9 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { InMemoryEventStore } from "@modelcontextprotocol/sdk/examples/shared/inMemoryEventStore.js";
 import { z } from 'zod';
- 
+
 const PORT = process.env.PORT || 3001;
- 
+
 
 export const ExpressHttpStreamableMcpServer = (options, setupCb) => {
   const server = new McpServer({
@@ -27,11 +27,11 @@ export const ExpressHttpStreamableMcpServer = (options, setupCb) => {
   const app = express();
   app.use(cors(
     {
-        origin: '*', // Allow all origins for simplicity, adjust as needed
-        methods: ['GET', 'POST', 'DELETE'],
-        allowedHeaders: ['Content-Type', 'MCP-Session-Id', 'Last-Event-Id'],
-        credentials: true // Allow cookies to be sent
-        }
+      origin: '*', // Allow all origins for simplicity, adjust as needed
+      methods: ['GET', 'POST', 'DELETE'],
+      allowedHeaders: ['Content-Type', 'MCP-Session-Id', 'Last-Event-Id'],
+      credentials: true // Allow cookies to be sent
+    }
   ))
   app.use(express.json());
 
@@ -40,19 +40,20 @@ export const ExpressHttpStreamableMcpServer = (options, setupCb) => {
 
   // Handle POST requests for client-to-server communication
   app.post('/mcp', async (req, res) => {
-    console.log(`Request received: ${req.method} ${req.url}`, {body: req.body});
-    
+    console.log(`Request received: ${req.method} ${req.url}`, { body: req.body });
+
     // Capture response data for logging
     const originalJson = res.json;
-    res.json = function(body) {
+    res.json = function (body) {
       console.log(`Response being sent:`, JSON.stringify(body, null, 2));
       return originalJson.call(this, body);
     };
-    
+
     try {
       // Check for existing session ID
-      const sessionId = req.headers['mcp-session-id'];
+      const sessionId = req.headers['mcp-session-id']
       let transport;
+      console.log(`header ID from headers: ${req.headers['mcp-session-id']}`);
 
       if (sessionId && transports[sessionId]) {
         // Reuse existing transport
@@ -70,6 +71,7 @@ export const ExpressHttpStreamableMcpServer = (options, setupCb) => {
             // Store the transport by session ID
             console.log(`Session initialized: ${sessionId}`);
             transports[sessionId] = transport;
+
           }
         });
 
@@ -86,9 +88,10 @@ export const ExpressHttpStreamableMcpServer = (options, setupCb) => {
         console.log(`Connecting transport to MCP server...`);
         await server.connect(transport);
         console.log(`Transport connected to MCP server successfully`);
-        
-        console.log(`Handling initialization request...`);
+
+        console.log(`Handling initialization request...`); 
         await transport.handleRequest(req, res, req.body);
+
         console.log(`Initialization request handled, response sent`);
         return; // Already handled
       } else {
@@ -107,7 +110,7 @@ export const ExpressHttpStreamableMcpServer = (options, setupCb) => {
 
       console.log(`Handling request for session: ${transport.sessionId}`);
       console.log(`Request body:`, JSON.stringify(req.body, null, 2));
-      
+
       // Handle the request with existing transport
       console.log(`Calling transport.handleRequest...`);
       const startTime = Date.now();
@@ -132,7 +135,7 @@ export const ExpressHttpStreamableMcpServer = (options, setupCb) => {
   // Handle GET requests for server-to-client notifications via SSE
   app.get('/mcp', async (req, res) => {
     console.log(`GET Request received: ${req.method} ${req.url}`);
-    
+
     try {
       const sessionId = req.headers['mcp-session-id'];
       if (!sessionId || !transports[sessionId]) {
@@ -140,7 +143,7 @@ export const ExpressHttpStreamableMcpServer = (options, setupCb) => {
         res.status(400).send('Invalid or missing session ID');
         return;
       }
-      
+
       // Check for Last-Event-ID header for resumability
       const lastEventId = req.headers['last-event-id'];
       if (lastEventId) {
@@ -148,14 +151,14 @@ export const ExpressHttpStreamableMcpServer = (options, setupCb) => {
       } else {
         console.log(`Establishing new SSE stream for session ${sessionId}`);
       }
-      
+
       const transport = transports[sessionId];
-      
+
       // Set up connection close monitoring
       res.on('close', () => {
         console.log(`SSE connection closed for session ${sessionId}`);
       });
-      
+
       console.log(`Starting SSE transport.handleRequest for session ${sessionId}...`);
       const startTime = Date.now();
       await transport.handleRequest(req, res);
@@ -179,23 +182,23 @@ export const ExpressHttpStreamableMcpServer = (options, setupCb) => {
         res.status(400).send('Invalid or missing session ID');
         return;
       }
-      
+
       console.log(`Received session termination request for session ${sessionId}`);
       const transport = transports[sessionId];
-      
+
       // Capture response for logging
       const originalSend = res.send;
-      res.send = function(body) {
+      res.send = function (body) {
         console.log(`DELETE response being sent:`, body);
         return originalSend.call(this, body);
       };
-      
+
       console.log(`Processing session termination...`);
       const startTime = Date.now();
       await transport.handleRequest(req, res);
       const duration = Date.now() - startTime;
       console.log(`Session termination completed in ${duration}ms for session: ${sessionId}`);
-      
+
       // Check if transport was actually closed
       setTimeout(() => {
         if (transports[sessionId]) {
@@ -255,12 +258,12 @@ export const ExpressHttpStreamableMcpServer = (options, setupCb) => {
         console.error(`Error closing transport for session ${sessionId}:`, error);
       }
     }
-    
+
     await express_server.close();
     await server.close();
     console.log('Server shutdown complete');
     process.exit(0);
   });
 
-  return {process, server, express_server}
+  return { process, server, express_server }
 }
