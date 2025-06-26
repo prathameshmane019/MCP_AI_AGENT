@@ -381,4 +381,6 @@ async function startServer() {
 // Export for testing
 export { app, server, mcpClient };
  
-  startServer(); 
+// Export default handler for platforms expecting a default export
+const handler = await startServer();
+export default handler;
