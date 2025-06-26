@@ -358,29 +358,27 @@ process.on('SIGINT', async () => {
   });
 });
 
-// Start server
 async function startServer() {
   try {
-    // Initialize MCP client first
     await initializeMCPClient();
-    
-    // Start the server
-    server.listen(PORT, () => {
-      console.log(`🚀 Backend server running on port ${PORT}`);
-      console.log(`📡 WebSocket server ready`);
-      console.log(`🤖 MCP Client status: ${clientInitialized ? 'Connected' : 'Disconnected'}`);
-      console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-    });
-    
+
+    // Only listen if running as standalone Node.js app
+    if (!process.env.IS_SERVERLESS) {
+      server.listen(PORT, () => {
+        console.log(`🚀 Backend server running on port ${PORT}`);
+        console.log(`📡 WebSocket server ready`);
+        console.log(`🤖 MCP Client status: ${clientInitialized ? 'Connected' : 'Disconnected'}`);
+        console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      });
+    }
+
+    return app; // ✅ return app for default export
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);
   }
 }
 
-// Export for testing
-export { app, server, mcpClient };
- 
 // Export default handler for platforms expecting a default export
 const handler = await startServer();
 export default handler;
