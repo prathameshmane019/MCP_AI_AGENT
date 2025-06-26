@@ -266,5 +266,5 @@ export const ExpressHttpStreamableMcpServer = (options, setupCb) => {
     process.exit(0);
   });
 
-  return { process, server, express_server }
+  return { app,process, server, express_server }
 }

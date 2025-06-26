@@ -7,7 +7,7 @@ import { query } from './lib/db.js';
 const PORT = process.env.PORT || 3001;
 console.log("Initializing MCP Streamable-HTTP Server with Express");
 
-const servers = ExpressHttpStreamableMcpServer(
+const { app } = ExpressHttpStreamableMcpServer(
   {
     name: "streamable-mcp-server",
   },
@@ -1110,4 +1110,4 @@ const servers = ExpressHttpStreamableMcpServer(
   }
 );
 
-export default servers;
+export default app; // ✅ This is what platforms expect
