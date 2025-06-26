@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { GeminiMCPClient } from './client/GeminiMCPClient.js';
+import { GeminiMCPClient } from '../client/GeminiMCPClient.js';
 import { config } from 'dotenv';
 
 // Load environment variables
