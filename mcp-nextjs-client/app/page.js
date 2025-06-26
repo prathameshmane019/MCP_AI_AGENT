@@ -1,413 +1,816 @@
-"use client"; // Required for Next.js 13+ to enable client-side rendering
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+'use client';
+import { useState, useEffect, useRef } from 'react';
+import {
+  Send,
+  RefreshCw,
+  Moon,
+  Sun,
+  Activity,
+  Code,
+  MessageSquare,
+  Zap,
+  Users, 
+  X,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Clock,
+  Database, 
+  Table,
+  BarChart3, 
+  Bot,
+  User,
+  Copy,
+  Check,
+  Terminal, 
+  TrendingUp, 
+} from 'lucide-react';
 
-// Main App component for the MCP Chatbot Client
-function App() {
-  // State to store chat messages (user, bot, notifications)
+// Charts
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+
+// ShadCN Components
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+
+export default function MCPChatAssistant() {
   const [messages, setMessages] = useState([]);
-  // State for the current input field value
-  const [input, setInput] = useState('');
-  // State for the MCP session ID received from the server
-  const [sessionId, setSessionId] = useState(null);
-  // State to indicate if an API call is in progress
+  const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  // State to store any API errors
-  const [error, setError] = useState(null);
-  // State for the last event ID received from SSE, for resumability
-  const [lastEventId, setLastEventId] = useState(0);
-  // Ref to hold the EventSource instance for SSE management
-  const eventSourceRef = useRef(null);
-  // Ref for scrolling to the latest message in the chat window
-  const chatEndRef = useRef(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [availableTools, setAvailableTools] = useState([]);
+  const [connectionCount, setConnectionCount] = useState(0);
+  const [darkMode, setDarkMode] = useState(false);
+  const [showToolsMenu, setShowToolsMenu] = useState(false);
+  const [showToast, setShowToast] = useState(null);
+  const [copiedMessageId, setCopiedMessageId] = useState(null);
+  const [activeTab, setActiveTab] = useState('chat');
+  const [socket, setSocket] = useState(null);
+  
+  const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
+  const chatContainerRef = useRef(null);
 
-  // Base URL for your MCP server.
-  // IMPORTANT: Replace with your actual server URL if different.
-  const MCP_SERVER_BASE_URL = 'http://localhost:3001/mcp';
+  // Chart colors
+  const COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
-  // Function to scroll the chat window to the bottom, showing the latest message
-  const scrollToBottom = () => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  // Initialize connection
+  useEffect(() => {
+    initializeConnection();
+    return () => {
+      if (socket) {
+        socket.disconnect();
+      }
+    };
+  }, []);
+
+  const initializeConnection = async () => {
+    try {
+      // Check server health
+      const response = await fetch('http://localhost:3002/api/health');
+      const health = await response.json();
+      
+      if (health.success) {
+        setIsConnected(true);
+        fetchAvailableTools();
+        showToastMessage('Connected to MCP server', 'success');
+        
+        // Initialize WebSocket connection
+        const io = await import('socket.io-client');
+        const socketConnection = io.default('http://localhost:3002');
+        
+        socketConnection.on('connect', () => {
+          setSocket(socketConnection);
+          console.log('WebSocket connected');
+        });
+        
+        socketConnection.on('connectionCount', (count) => {
+          setConnectionCount(count);
+        });
+        
+        socketConnection.on('chatResponse', (response) => {
+          setIsLoading(false);
+          addMessage({
+            type: 'assistant',
+            ...response
+          });
+        });
+        
+        socketConnection.on('toolResponse', (response) => {
+          setIsLoading(false);
+          addMessage({
+            type: 'tool',
+            ...response
+          });
+        });
+      }
+    } catch (error) {
+      console.error('Connection failed:', error);
+      showToastMessage('Failed to connect to server', 'error');
+    }
   };
 
-  // Effect hook to scroll to bottom whenever the messages state updates
+  const fetchAvailableTools = async () => {
+    try {
+      const response = await fetch('http://localhost:3002/api/tools');
+      const data = await response.json();
+      if (data.success) {
+        setAvailableTools(data.tools);
+      }
+    } catch (error) {
+      console.error('Failed to fetch tools:', error);
+    }
+  };
+
+  const showToastMessage = (message, type = 'info', duration = 3000) => {
+    setShowToast({ message, type });
+    setTimeout(() => setShowToast(null), duration);
+  };
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  // Callback function to add a new message to the chat history
-  // Uses useCallback to prevent unnecessary re-renders of child components if passed down
-  const addMessage = useCallback((sender, text, type = 'text') => {
-    setMessages(prevMessages => [
-      ...prevMessages,
-      { id: Date.now(), sender, text, type } // Unique ID for each message
-    ]);
-  }, []); // No dependencies, so it's stable across renders
-
-  // Function to initialize a new MCP session with the server
-  const initializeSession = useCallback(async () => {
-    setIsLoading(true); // Set loading state
-    setError(null); // Clear any previous errors
-    try {
-      addMessage('System', 'Initializing new session...'); // Notify user of initialization
-      const response = await fetch(MCP_SERVER_BASE_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json, text/event-stream', // Explicitly set Accept header for SSE
-        },
-        body: JSON.stringify({
-          jsonrpc: '2.0', 
-          method: 'initialize',
-          params: {
-            capabilities: {
-              tools: true,
-              prompts: false,
-              resources: false,
-              logging: false,
-              roots: { listChanged: false }
-            }, protocolVersion: "2025-03-26", clientInfo: { name: 'mcp-chatbot-client', version: "1.0.0" }
-          },
-          id: 1, // Unique request ID for this RPC call
-        }),
-      });
-
-      const data = await response.json(); // Parse the JSON response 
-      console.log(response);
-      console.log(response.headers['MCP-Session-Id']);
-      // Check if the response was successful and contains a session ID
-      if (response.ok) {
-        setSessionId( "b71cbb5d-adc5-4fcf-9269-d146696e09ae"); // Store the session ID
-        addMessage('System', `Session initialized: ${sessionId}`);
-        return sessionId; // Return session ID for further use (e.g., SSE setup)
-      } else {
-        // Handle specific server initialization error
-        if (data.error?.message.includes('Server not initialized')) {
-          throw new Error(`Bad Request: Server not initialized. Please ensure your MCP server is running and fully started.`);
-        }
-        // Throw a generic error if initialization failed
-        throw new Error(data.error?.message || 'Failed to initialize session');
-      }
-    } catch (err) {
-      console.error('Session initialization error:', err);
-      setError(`Failed to initialize session: ${err.message}`);
-      addMessage('System', `Error initializing session: ${err.message}`, 'error'); // Display error in chat
-      return null; // Indicate failure
-    } finally {
-      setIsLoading(false); // Reset loading state
-    }
-  }, [addMessage]); // Dependency on addMessage to ensure it's the latest version
-
-  // Function to establish Server-Sent Events (SSE) connection for real-time notifications
-  const setupSSE = useCallback((currentSessionId) => {
-    // Close any existing EventSource connection before creating a new one
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      console.log('Existing EventSource closed.');
-    }
-
-    // If no session ID is available, cannot set up SSE
-    if (!currentSessionId) {
-      console.warn('Cannot set up SSE: No session ID available.');
-      return;
-    }
-
-    // Construct the SSE URL with session ID and lastEventId as query parameters.
-    // EventSource does not support custom headers directly.
-    const sseUrl = `${MCP_SERVER_BASE_URL}?mcp-session-id=${currentSessionId}&last-event-id=${lastEventId}`;
-
-    // Create a new EventSource instance
-    const eventSource = new EventSource(sseUrl);
-
-    // Event handler for when the SSE connection is opened
-    eventSource.onopen = () => {
-      console.log('SSE connection opened.');
-      addMessage('System', 'Connected to real-time notifications.');
-    };
-
-    // Event handler for incoming SSE messages
-    eventSource.onmessage = (event) => {
-      // Update lastEventId for resumability in case of disconnection
-      if (event.lastEventId) {
-        setLastEventId(Number(event.lastEventId));
-      }
-
-      try {
-        const data = JSON.parse(event.data); // Parse the incoming JSON data
-        console.log('Received SSE message:', data);
-        // Check for specific notification types and display them
-        if (data.method === 'notifications/message' && data.params?.data) {
-          addMessage('Notification', data.params.data, data.params.level || 'info');
-        } else {
-          // Log unknown notification types
-          addMessage('System', `Received unknown notification: ${JSON.stringify(data)}`, 'info');
-        }
-      } catch (e) {
-        console.error('Error parsing SSE message:', e, event.data);
-        addMessage('System', `Invalid notification data: ${event.data}`, 'error'); // Display parsing errors
-      }
-    };
-
-    // Event handler for SSE errors (e.g., connection lost)
-    eventSource.onerror = (err) => {
-      console.error('EventSource failed:', err);
-      eventSource.close(); // Close the current connection
-      addMessage('System', 'Lost connection to real-time notifications. Attempting to re-establish...', 'error');
-      // Attempt to re-initialize session and re-establish SSE after a delay
-      setTimeout(() => {
-        addMessage('System', 'Reconnecting...', 'info');
-        initializeSession().then(newSessionId => {
-          if (newSessionId) {
-            setupSSE(newSessionId); // If successful, set up SSE again
-          }
-        });
-      }, 3000); // Reconnect after 3 seconds
-    };
-
-    // Store the EventSource instance in the ref for later cleanup
-    eventSourceRef.current = eventSource;
-
-    // Cleanup function: close EventSource when component unmounts or dependencies change
-    return () => {
-      eventSource.close();
-      console.log('SSE connection closed during cleanup.');
-    };
-  }, [addMessage, lastEventId, initializeSession]); // Dependencies for setupSSE
-
-  // Initial useEffect hook to set up session and SSE when the component mounts
-  useEffect(() => {
-    initializeSession().then(newSessionId => {
-      if (newSessionId) {
-        setupSSE(newSessionId); // Only set up SSE if session initialization was successful
-      }
-    });
-
-    // Cleanup function: ensure EventSource is closed if the component unmounts
-    return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
-    };
-  }, [initializeSession, setupSSE]); // Dependencies ensure this effect runs when these callbacks change
-
-  // Function to send a message (RPC call) to the MCP server
-  const sendMessage = async () => {
-    // Prevent sending if input is empty or session is not established
-    if (!input.trim() || !sessionId) return;
-
-    addMessage('You', input); // Add user's message to chat
-    const query = input;
-    setInput(''); // Clear the input field
-    setIsLoading(true); // Set loading state
-    setError(null); // Clear any previous errors
-
-    let method = 'call_tool'; // Default method for commands
-    let params = {};
-    let toolName = null;
-
-    // Logic to parse user input and determine which tool to call
-    if (query.toLowerCase().startsWith('sum')) {
-      const parts = query.split(' ').slice(1);
-      const a = parseFloat(parts[0]);
-      const b = parseFloat(parts[1]);
-      if (!isNaN(a) && !isNaN(b)) {
-        toolName = 'calculate_sum';
-        params = { a, b };
-      } else {
-        addMessage('Bot', 'Please provide two numbers for sum (e.g., "sum 5 10").', 'warning');
-        setIsLoading(false);
-        return;
-      }
-    } else if (query.toLowerCase().startsWith('greet')) {
-      const name = query.substring(6).trim();
-      if (name) {
-        toolName = 'greet';
-        params = { name };
-      } else {
-        addMessage('Bot', 'Please provide a name to greet (e.g., "greet John").', 'warning');
-        setIsLoading(false);
-        return;
-      }
-    } else if (query.toLowerCase().startsWith('multi-greet')) {
-      const name = query.substring(12).trim();
-      if (name) {
-        toolName = 'multi-greet';
-        params = { name };
-      } else {
-        addMessage('Bot', 'Please provide a name for multi-greet (e.g., "multi-greet Alice").', 'warning');
-        setIsLoading(false);
-        return;
-      }
-    } else if (query.toLowerCase() === 'session') {
-      toolName = 'get_session';
-      params = {};
-    } else if (query.toLowerCase() === 'list tools') {
-      // Provide a list of available commands directly in the client
-      addMessage('Bot', 'Available tools: calculate_sum(a, b), greet(name), multi-greet(name), get_session(). Try: "sum 10 20", "greet Alice", "multi-greet Bob", "session".', 'info');
-      setIsLoading(false);
-      return;
-    } else {
-      // Default response for unrecognized commands
-      addMessage('Bot', 'I can calculate sums (e.g., "sum 5 10"), greet (e.g., "greet John"), send multiple greetings ("multi-greet Alice") or get session info ("session").', 'warning');
-      setIsLoading(false);
-      return;
-    }
-
-    // If no tool was determined, stop and return
-    if (!toolName) {
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      // Send the RPC call to the MCP server
-      const response = await fetch(MCP_SERVER_BASE_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'MCP-Session-Id': sessionId, // Include the session ID in the header
-        },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          method: method,
-          params: {
-            toolName: toolName,
-            args: params,
-          },
-          id: Date.now(), // Unique ID for this request
-        }),
-      });
-
-      const data = await response.json(); // Parse the response from the server
-      console.log('Received response from server:', data);
-
-      // Process the response: display result or error
-      if (response.ok && data.result) {
-        const content = data.result.content || [];
-        // Find and display text content from the result
-        const textContent = content.find(item => item.type === 'text')?.text;
-        if (textContent) {
-          addMessage('Bot', textContent);
-        } else {
-          // If no specific text content, show the raw result
-          addMessage('Bot', `Tool executed, but no text content in response. Raw: ${JSON.stringify(data.result)}`, 'info');
-        }
-      } else {
-        // Throw error if the server response indicates an issue
-        throw new Error(data.error?.message || 'Unknown error from server');
-      }
-    } catch (err) {
-      console.error('Error sending message:', err);
-      setError(`Failed to send message: ${err.message}`);
-      addMessage('Bot', `Error: ${err.message}`, 'error'); // Display error in chat
-    } finally {
-      setIsLoading(false); // Reset loading state
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
-  // Handle Enter key press in the input field to send message
+  const addMessage = (message) => {
+    setMessages(prev => [...prev, {
+      id: Date.now().toString(),
+      ...message,
+      timestamp: message.timestamp || new Date().toISOString()
+    }]);
+  };
+
+  const sendMessage = async () => {
+    if (!inputMessage.trim() || isLoading || !isConnected) return;
+
+    const userMessage = inputMessage.trim();
+    setInputMessage('');
+    setIsLoading(true);
+
+    addMessage({
+      type: 'user',
+      content: userMessage
+    });
+
+    try {
+      if (socket) {
+        // Use WebSocket for real-time communication
+        socket.emit('chat', { message: userMessage });
+      } else {
+        // Fallback to HTTP API
+        const response = await fetch('http://localhost:3002/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message: userMessage })
+        });
+
+        const data = await response.json();
+        setIsLoading(false);
+        
+        addMessage({
+          type: 'assistant',
+          ...data
+        });
+      }
+    } catch (error) {
+      setIsLoading(false);
+      console.error('Send message error:', error);
+      showToastMessage('Failed to send message', 'error');
+    }
+  };
+
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
       sendMessage();
     }
   };
 
-  return (
-    <div className="flex flex-col h-screen bg-gray-100 font-inter antialiased">
-      {/* Tailwind CSS CDN for styling - ensures styles are loaded in an isolated environment */}
-      <script src="https://cdn.tailwindcss.com"></script>
+  const executeDirectTool = async (toolName, parameters = {}) => {
+    if (!isConnected) return;
 
-      {/* Google Fonts - Inter for clean typography - ensures font is loaded */}
-      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    setIsLoading(true);
+    addMessage({
+      type: 'system',
+      content: `Executing tool: ${toolName}`,
+      toolUsed: toolName
+    });
 
-      {/* Main Chatbot Container */}
-      <div className="flex flex-col flex-grow max-w-2xl mx-auto w-full bg-white shadow-lg rounded-lg overflow-hidden my-4">
-        {/* Chat Header */}
-        <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-4 flex justify-between items-center rounded-t-lg">
-          <h1 className="text-xl font-semibold">MCP Chatbot Client</h1>
-          <div className="text-sm">
-            {sessionId ? (
-              // Display truncated session ID if available
-              <span className="text-gray-200">Session ID: <span className="font-mono text-xs">{sessionId.substring(0, 8)}...</span></span>
-            ) : (
-              // Show connecting message if session is not yet established
-              <span className="text-gray-300">Connecting...</span>
+    try {
+      if (socket) {
+        socket.emit('executeTool', { toolName, parameters });
+      } else {
+        const response = await fetch(`http://localhost:3002/api/tools/${toolName}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ parameters })
+        });
+
+        const data = await response.json();
+        setIsLoading(false);
+        
+        addMessage({
+          type: 'tool',
+          ...data
+        });
+      }
+    } catch (error) {
+      setIsLoading(false);
+      console.error('Tool execution error:', error);
+      showToastMessage('Failed to execute tool', 'error');
+    }
+
+    setShowToolsMenu(false);
+  };
+
+  const parseTableData = (text) => {
+    try {
+      const data = JSON.parse(text);
+      if (Array.isArray(data) && data.length > 0) {
+        return data;
+      }
+    } catch (error) { 
+    }
+    return null;
+  };
+
+  const generateChartData = (data, type = 'bar') => {
+    if (!data || !Array.isArray(data)) return null;
+
+    // For products data
+    if (data[0]?.product_name) {
+      return data.map(item => ({
+        name: item.product_name,
+        value: parseFloat(item.price) || 0,
+        stock: item.stock_quantity || 0,
+        price: parseFloat(item.price) || 0
+      }));
+    }
+
+    // For customers data (count by state/city)
+    if (data[0]?.state) {
+      const stateCount = data.reduce((acc, item) => {
+        acc[item.state] = (acc[item.state] || 0) + 1;
+        return acc;
+      }, {});
+      
+      return Object.entries(stateCount).map(([state, count]) => ({
+        name: state,
+        value: count
+      }));
+    }
+
+    // For orders data
+    if (data[0]?.order_date) {
+      return data.map((item, index) => ({
+        name: `Order ${item.order_id || index + 1}`,
+        value: parseFloat(item.total_amount) || 0,
+        date: item.order_date
+      }));
+    }
+
+    return null;
+  };
+
+  const DataVisualization = ({ data, title }) => {
+    const tableData = parseTableData(data);
+    const chartData = generateChartData(tableData);
+    const [viewMode, setViewMode] = useState('table'); // 'table', 'bar', 'pie', 'line'
+
+    if (!tableData) return null;
+
+    const renderTable = () => (
+      <div className="overflow-x-auto">
+        <table className="min-w-full border-collapse border border-gray-300 dark:border-gray-600">
+          <thead>
+            <tr className="bg-gray-50 dark:bg-gray-800">
+              {Object.keys(tableData[0]).map((key) => (
+                <th key={key} className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left font-medium">
+                  {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {tableData.map((row, index) => (
+              <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                {Object.values(row).map((value, cellIndex) => (
+                  <td key={cellIndex} className="border border-gray-300 dark:border-gray-600 px-4 py-2">
+                    {value}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+
+    const renderBarChart = () => (
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart data={chartData}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="name" />
+          <YAxis />
+          <Tooltip />
+          <Legend />
+          <Bar dataKey="value" fill="#3b82f6" />
+          {chartData[0]?.stock && <Bar dataKey="stock" fill="#10b981" />}
+        </BarChart>
+      </ResponsiveContainer>
+    );
+
+    const renderPieChart = () => (
+      <ResponsiveContainer width="100%" height={300}>
+        <PieChart>
+          <Pie
+            data={chartData}
+            cx="50%"
+            cy="50%"
+            labelLine={false}
+            label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+            outerRadius={80}
+            fill="#8884d8"
+            dataKey="value"
+          >
+            {chartData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+            ))}
+          </Pie>
+          <Tooltip />
+        </PieChart>
+      </ResponsiveContainer>
+    );
+
+    const renderLineChart = () => (
+      <ResponsiveContainer width="100%" height={300}>
+        <LineChart data={chartData}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="name" />
+          <YAxis />
+          <Tooltip />
+          <Legend />
+          <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} />
+        </LineChart>
+      </ResponsiveContainer>
+    );
+
+    return (
+      <Card className="mt-4">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Database size={20} />
+              {title || 'Data Visualization'}
+            </CardTitle>
+            <div className="flex gap-2">
+              <Button
+                variant={viewMode === 'table' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('table')}
+              >
+                <Table size={16} />
+              </Button>
+              {chartData && (
+                <>
+                  <Button
+                    variant={viewMode === 'bar' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setViewMode('bar')}
+                  >
+                    <BarChart3 size={16} />
+                  </Button>
+                  <Button
+                    variant={viewMode === 'pie' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setViewMode('pie')}
+                  >
+                    <TrendingUp size={16} />
+                  </Button>
+                  <Button
+                    variant={viewMode === 'line' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setViewMode('line')}
+                  >
+                    <Activity size={16} />
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {viewMode === 'table' && renderTable()}
+          {viewMode === 'bar' && chartData && renderBarChart()}
+          {viewMode === 'pie' && chartData && renderPieChart()}
+          {viewMode === 'line' && chartData && renderLineChart()}
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const copyToClipboard = async (text, messageId) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedMessageId(messageId);
+      setTimeout(() => setCopiedMessageId(null), 2000);
+      showToastMessage('Copied to clipboard', 'success', 1500);
+    } catch (error) {
+      showToastMessage('Failed to copy', 'error');
+    }
+  };
+
+  const clearMessages = () => {
+    setMessages([]);
+    showToastMessage('Messages cleared', 'info', 2000);
+  };
+
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
+  };
+
+  const MessageComponent = ({ message }) => {
+    const isUser = message.type === 'user';
+    const isSystem = message.type === 'system';
+    const isTool = message.type === 'tool';
+    const isError = !message.success && message.error;
+
+    const getMessageContent = () => {
+      if (message.finalResponse) {
+        return message.finalResponse;
+      }
+      if (message.content) {
+        return message.content;
+      }
+      if (message.toolResult?.content) {
+        return message.toolResult.content
+          .map(item => item.text || item.content || '')
+          .join(' ');
+      }
+      return message.result || 'No content';
+    };
+
+    const getToolDetails = () => {
+      if (!message.toolUsed) return null;
+      
+      return (
+        <div className="mt-3 space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <Zap size={12} />
+              {message.toolUsed}
+            </Badge>
+            {message.processingTime && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                <Clock size={12} />
+                {message.processingTime}
+              </Badge>
             )}
           </div>
+          
+          {message.toolParameters && Object.keys(message.toolParameters).length > 0 && (
+            <div className="text-xs opacity-70">
+              <strong>Parameters:</strong> {JSON.stringify(message.toolParameters, null, 2)}
+            </div>
+          )}
+          
+          {message.reasoning && (
+            <div className="text-xs opacity-70 mt-2">
+              <strong>Reasoning:</strong> {message.reasoning}
+            </div>
+          )}
         </div>
+      );
+    };
 
-        {/* Chat Messages Area - scrollable content */}
-        <div className="flex-grow p-4 overflow-y-auto space-y-3" style={{ maxHeight: 'calc(100vh - 180px)' }}>
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.sender === 'You' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[75%] px-4 py-2 rounded-lg shadow ${msg.sender === 'You'
-                    ? 'bg-blue-500 text-white rounded-br-none' // User messages
-                    : msg.type === 'error'
-                      ? 'bg-red-200 text-red-800 rounded-bl-none' // Error messages
-                      : msg.type === 'warning'
-                        ? 'bg-yellow-100 text-yellow-800 rounded-bl-none' // Warning messages
-                        : msg.type === 'info' || msg.sender === 'System' || msg.sender === 'Notification'
-                          ? 'bg-gray-200 text-gray-800 rounded-bl-none' // System/Notification/Info messages
-                          : 'bg-gray-300 text-gray-800 rounded-bl-none' // Default bot messages
-                  }`}
-              >
-                <strong className="font-medium">{msg.sender}: </strong>
-                <span>{msg.text}</span>
+    const getDataVisualization = () => {
+      if (!message.toolResult?.content) return null;
+      
+      const content = message.toolResult.content[0];
+      if (content?.text) {
+        const tableData = parseTableData(content.text);
+        if (tableData) {
+          return (
+            <DataVisualization 
+              data={content.text} 
+              title={`${message.toolUsed} Results`}
+            />
+          );
+        }
+      }
+      return null;
+    };
+
+    return (
+      <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
+        <Card className={`
+          max-w-[90%] shadow-lg border-0
+          ${isUser 
+            ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white' 
+            : isSystem 
+            ? 'bg-gradient-to-br from-orange-500 to-orange-600 text-white'
+            : isTool
+            ? 'bg-gradient-to-br from-purple-500 to-purple-600 text-white'
+            : isError
+            ? 'bg-gradient-to-br from-red-500 to-red-600 text-white'
+            : darkMode 
+            ? 'bg-gray-800 border-gray-700 text-gray-100' 
+            : 'bg-white border-gray-200 text-gray-900'
+          }
+        `}>
+          <CardContent className="p-4">
+            <div className="flex items-start gap-2">
+              <div className="flex-shrink-0">
+                {isUser ? (
+                  <User size={20} className="mt-0.5" />
+                ) : isTool ? (
+                  <Terminal size={20} className="mt-0.5" />
+                ) : (
+                  <Bot size={20} className="mt-0.5" />
+                )}
+              </div>
+              <div className="flex-1 space-y-2">
+                <div className="text-sm leading-relaxed whitespace-pre-wrap">
+                  {getMessageContent()}
+                </div>
+                
+                {getToolDetails()}
+                
+                {message.error && (
+                  <Alert className="mt-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Error: {message.error}
+                    </AlertDescription>
+                  </Alert>
+                )}
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-xs opacity-70">
+                    {new Date(message.timestamp).toLocaleTimeString()}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyToClipboard(getMessageContent(), message.id)}
+                    className="h-6 w-6 p-0"
+                  >
+                    {copiedMessageId === message.id ? (
+                      <Check size={12} />
+                    ) : (
+                      <Copy size={12} />
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
-          ))}
-          {/* Ref for auto-scrolling to the end of messages */}
-          <div ref={chatEndRef} />
-        </div>
-
-        {/* Loading Indicator Section */}
-        {isLoading && (
-          <div className="p-2 text-center text-blue-600 font-medium bg-blue-50">
-            <div className="flex items-center justify-center space-x-2">
-              {/* Spinner SVG for loading */}
-              <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              <span>Thinking...</span>
-            </div>
-          </div>
-        )}
-        {/* Error Display Section */}
-        {error && (
-          <div className="p-2 text-center bg-red-100 text-red-700 rounded-b-lg">
-            Error: {error}
-          </div>
-        )}
-
-        {/* Chat Input Area */}
-        <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center space-x-3 rounded-b-lg">
-          <input
-            type="text"
-            className="flex-grow px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
-            placeholder="Type your message..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-            // Disable input if session is not ready or loading
-            disabled={!sessionId || isLoading}
-          />
-          <button
-            onClick={sendMessage}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-full font-semibold shadow-md transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            // Disable send button if session is not ready, loading, or input is empty
-            disabled={!sessionId || isLoading || !input.trim()}
-          >
-            Send
-          </button>
-        </div>
+            
+            {getDataVisualization()}
+          </CardContent>
+        </Card>
       </div>
+    );
+  };
+
+  const ToastComponent = () => {
+    if (!showToast) return null;
+
+    const getToastIcon = () => {
+      switch (showToast.type) {
+        case 'success': return <CheckCircle className="text-green-500" size={20} />;
+        case 'error': return <XCircle className="text-red-500" size={20} />;
+        case 'warning': return <AlertCircle className="text-yellow-500" size={20} />;
+        default: return <AlertCircle className="text-blue-500" size={20} />;
+      }
+    };
+
+    return (
+      <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right duration-300">
+        <Alert className="max-w-md">
+          {getToastIcon()}
+          <AlertDescription className="flex items-center justify-between">
+            <span>{showToast.message}</span>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setShowToast(null)}
+              className="h-6 w-6 p-0 ml-2"
+            >
+              <X size={16} />
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  };
+
+  const ToolsPanel = () => (
+    <Card className="h-full">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Code size={20} />
+          Available Tools
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ScrollArea className="h-[400px]">
+          <div className="space-y-3">
+            {availableTools.map((tool, index) => (
+              <Card key={index} className="p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-medium">{tool.name}</h4>
+                  <Button
+                    size="sm"
+                    onClick={() => executeDirectTool(tool.name, {})}
+                    disabled={!isConnected}
+                  >
+                    Execute
+                  </Button>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  {tool.description}
+                </p>
+                {Object.keys(tool.parameters || {}).length > 0 && (
+                  <div className="text-xs text-gray-500">
+                    <strong>Parameters:</strong> {Object.keys(tool.parameters).join(', ')}
+                  </div>
+                )}
+              </Card>
+            ))}
+          </div>
+        </ScrollArea>
+      </CardContent>
+    </Card>
+  );
+ 
+  return (
+    <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-gray-50'} transition-colors duration-200`}>
+      <div className="container mx-auto h-screen p-4 flex flex-col">
+        {/* Header */}
+        <Card className="mb-4 shadow-lg">
+          <CardHeader className="pb-4">
+            <div className="flex justify-between items-center">
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600">
+                    <MessageSquare className="text-white" size={24} />
+                  </div>
+                  <CardTitle className="text-2xl">MCP Chat Assistant</CardTitle>
+                </div>
+                <div className="flex items-center gap-6 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Activity className={isConnected ? 'text-green-500' : 'text-red-500'} size={16} />
+                    <span className={isConnected ? 'text-green-600' : 'text-red-600'}>
+                      {isConnected ? 'Connected' : 'Disconnected'}
+                    </span>
+                  </div>
+                  {connectionCount > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Users className="text-gray-500" size={16} />
+                      <span className="text-gray-600 dark:text-gray-300">
+                        {connectionCount} user{connectionCount !== 1 ? 's' : ''} online
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Code className="text-gray-500" size={16} />
+                    <span className="text-gray-600 dark:text-gray-300">
+                      {availableTools.length} tool{availableTools.length !== 1 ? 's' : ''} available
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleDarkMode}
+                >
+                  {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+                </Button>
+                
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearMessages}
+                >
+                  <RefreshCw size={20} />
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+        </Card>
+
+        {/* Main Content */}
+        <div className="flex-1 overflow-hidden">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="chat" className="flex items-center gap-2">
+                <MessageSquare size={16} />
+                Chat
+              </TabsTrigger>
+              <TabsTrigger value="tools" className="flex items-center gap-2">
+                <Code size={16} />
+                Tools
+              </TabsTrigger>
+            </TabsList>
+            
+            <div className="flex-1 mt-4 overflow-hidden">
+              <TabsContent value="chat" className="h-full">
+                <Card className="h-full flex flex-col">
+                  <CardContent className="flex-1 p-6 overflow-hidden">
+                    <ScrollArea className="h-full" ref={chatContainerRef}>
+                      {messages.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center space-y-6">
+                          <div className="p-4 rounded-full bg-gradient-to-r from-blue-500 to-purple-600">
+                            <MessageSquare className="text-white" size={48} />
+                          </div>
+                          <div className="space-y-4">
+                            <h2 className="text-xl font-semibold">
+                              Welcome to MCP Chat Assistant
+                            </h2>
+                            <p className="max-w-md text-gray-600 dark:text-gray-300">
+                              Start a conversation! I can help you with data queries, calculations, 
+                              text analysis, and more. Try asking me something like:
+                            </p>
+                            <div className="space-y-2 text-sm text-blue-500">
+                              <p>"Show all products data"</p>
+                              <p>"Get all customers"</p>
+                              <p>"Display orders with charts"</p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          {messages.map((message) => (
+                            <MessageComponent key={message.id} message={message} />
+                          ))}
+                          <div ref={messagesEndRef} />
+                        </div>
+                      )}
+                      <ScrollBar orientation="vertical" />
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              </TabsContent> 
+              <TabsContent value="tools" className="h-full">
+                <ToolsPanel />
+              </TabsContent>
+            </div>
+          </Tabs>
+        </div>
+
+        {/* Input Area */}
+        <Card className="mt-4 shadow-lg">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <Input
+                  ref={inputRef}
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder={isConnected ? "Type your message..." : "Connecting..."}
+                  disabled={!isConnected || isLoading}
+                  className="text-lg py-6"
+                />
+              </div>
+              <Button
+                onClick={sendMessage}
+                disabled={!isConnected || isLoading || !inputMessage.trim()}
+                className="px-6 py-6"
+              >
+                {isLoading ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                ) : (
+                  <>
+                    <Send size={20} className="mr-2" />
+                    Send
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <ToastComponent />
     </div>
   );
 }
-
-// Export the App component as default
-export default App;

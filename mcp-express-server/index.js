@@ -1,10 +1,10 @@
+// /mcp-express-server/index.js
 import express from "express";
 import cors from "cors";
 import { randomUUID } from "node:crypto";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { InMemoryEventStore } from "@modelcontextprotocol/sdk/examples/shared/inMemoryEventStore.js";
-import { z } from 'zod';
+import { InMemoryEventStore } from "@modelcontextprotocol/sdk/examples/shared/inMemoryEventStore.js"; 
 
 const PORT = process.env.PORT || 3001;
 
@@ -29,7 +29,8 @@ export const ExpressHttpStreamableMcpServer = (options, setupCb) => {
     {
       origin: '*', // Allow all origins for simplicity, adjust as needed
       methods: ['GET', 'POST', 'DELETE'],
-      allowedHeaders: ['Content-Type', 'MCP-Session-Id', 'Last-Event-Id'],
+      exposedHeaders: ['mcp-session-id'],
+      allowedHeaders: ['Content-Type', 'mcp-session-id'],
       credentials: true // Allow cookies to be sent
     }
   ))
@@ -89,7 +90,7 @@ export const ExpressHttpStreamableMcpServer = (options, setupCb) => {
         await server.connect(transport);
         console.log(`Transport connected to MCP server successfully`);
 
-        console.log(`Handling initialization request...`); 
+        console.log(`Handling initialization request...`);
         await transport.handleRequest(req, res, req.body);
 
         console.log(`Initialization request handled, response sent`);
