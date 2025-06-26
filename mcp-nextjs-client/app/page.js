@@ -750,9 +750,9 @@ export default function MCPChatAssistant() {
                               text analysis, and more. Try asking me something like:
                             </p>
                             <div className="space-y-2 text-sm text-blue-500">
-                              <p>"Show all products data"</p>
-                              <p>"Get all customers"</p>
-                              <p>"Display orders with charts"</p>
+                              <p>&quot;Show all products data&quot;</p>
+                              <p>&quot;Get all customers&quot;</p>
+                              <p>&quot;Display orders with charts&quot;</p>
                             </div>
                           </div>
                         </div>
