@@ -1,229 +1,235 @@
 AI-Powered Database Explorer
 Project Overview
-The AI-Powered Database Explorer is a sophisticated application that transforms how users interact with relational databases. It enables natural language queries and full CRUD (Create, Read, Update, Delete) operations on a PostgreSQL database, all powered by an intelligent AI agent. This system leverages the Model Context Protocol (MCP) for seamless communication between a Gemini-powered AI client and a Node.js Express backend, which exposes a rich set of database interaction tools. Hosted on PostgreSQL (Neon) for scalability and a responsive Next.js frontend, this solution democratizes data access, making complex database operations accessible to non-technical users and accelerating data-driven insights.
+The AI-Powered Database Explorer is a cutting-edge application that redefines database interaction. It empowers users to perform sophisticated queries, complex analytical operations, and comprehensive data management on a PostgreSQL database using natural language. At its core, this system features a Google Gemini-powered AI agent uniquely integrated with the Model Context Protocol (MCP) and Streamable HTTP. This novel combination facilitates highly efficient, real-time communication between the AI and a rich set of custom-built "business tools" exposed via a Node.js Express backend. Hosted on PostgreSQL (Neon) for unparalleled scalability and a dynamic Next.js frontend, this solution is designed to democratize advanced data exploration, enabling non-technical users to derive deep insights and execute complex business logic with unprecedented ease.
+
+This project stands out by pioneering the use of Streamable HTTP as a core transport for AI agent-to-tool communication, offering a stateless, real-time, and highly performant paradigm for intelligent database interaction that moves far beyond traditional API calls.
 
 Features
-Natural Language Interface: Users can interact with the database using plain English queries, eliminating the need for SQL knowledge.
+Groundbreaking Natural Language Interface: Interact with the database using intuitive plain English, powered by Gemini's understanding of complex requests.
 
-Intelligent Tool Orchestration: A Gemini-powered AI agent intelligently selects and executes the most appropriate database tool based on user intent.
+Advanced AI Agent Orchestration (MCP & Streamable HTTP):
 
-Comprehensive Database Operations:
+The Gemini AI agent intelligently interprets user intent, selects, and orchestrates calls to specialized "business tools" rather than generic CRUD operations.
 
-Retrieval (Read): Fetch customer, product, and order information with various filters. Includes advanced queries like retrieving all orders for a specific customer (with product details) and generating product sales summaries.
+Leverages Model Context Protocol (MCP) for structured communication, ensuring the AI understands the capabilities and parameters of each tool.
 
-Creation (Create): Add new customers, products, and create complex orders that can include multiple products.
+Utilizes Streamable HTTP as the primary transport, enabling efficient, stateless, and potentially real-time streaming of tool invocations and results, a novel approach for AI agent-database interaction.
 
-Updates (Update): Modify existing customer, product, and order records.
+Comprehensive & Complex Business Tools:
 
-Deletion (Delete): Remove customers, products, and orders, with automatic cascade deletion of related data (e.g., deleting a customer also deletes their orders).
+Intelligent Data Retrieval: Beyond simple fetches, tools can perform filtered searches (e.g., customers by multiple criteria, products by price range), and retrieve detailed linked data (e.g., all orders for a customer including product specifics).
 
-Robust Data Validation: Utilizes Zod for strict schema validation of all tool parameters, ensuring data integrity and preventing malformed requests.
+Analytical Reporting: Generate complex summaries (e.g., product sales by total quantity and revenue) that provide business insights.
 
-Efficient Communication (Streamable HTTP/SSE): Employs streamablehttp for efficient client-server communication, with a fallback to Server-Sent Events (SSE), enabling potentially real-time feedback and long-running operations.
+Full Data Management (CRUD with Business Logic):
 
-Real-time Interactions with WebSockets: Integrates Socket.IO for real-time chat and direct tool execution, providing a highly responsive user experience.
+Create: Add new customers, products, and construct complex orders involving multiple products with automatic total amount calculation and stock considerations.
 
-Secure & Scalable Backend API Gateway: Built on Express.js, protected with helmet for security headers, cors for controlled access, and express-rate-limit to prevent abuse.
+Update: Modify existing records with robust validation.
 
-Cloud-Native Database: Leverages PostgreSQL on Neon, offering serverless capabilities, instant branching, and auto-scaling for an optimized and cost-effective data layer.
+Delete: Securely remove records with appropriate cascade logic, ensuring data integrity across related tables.
+
+Robust Data Validation: Implements Zod for strict schema validation on all tool parameters, guaranteeing data integrity and preventing malformed inputs.
+
+Real-time Interactions with WebSockets: Integrates Socket.IO for a highly responsive, bidirectional communication channel between the frontend and backend, enhancing the chat experience and enabling instant tool execution feedback.
+
+Secure & Scalable Backend API Gateway: Built on Express.js, fortified with helmet for security headers, cors for controlled access, and express-rate-limit to protect against abuse.
+
+Cloud-Native Database: Leverages PostgreSQL on Neon, offering serverless capabilities, instant branching for development/testing, and auto-scaling for an optimized, cost-effective, and highly available data layer.
 
 Modern & Interactive Frontend: Developed with Next.js and ShadCN UI, providing a fast, reactive, and intuitive user interface with:
 
-Dynamic Data Visualization: Automatically renders query results as interactive tables, bar charts, pie charts, or line charts.
+Dynamic Data Visualization: Automatically renders query results as interactive tables, insightful bar charts, pie charts, or line charts using Recharts.
 
-Tool Browsing: A dedicated tab to view all available AI agent tools with their descriptions and parameters, allowing for direct execution.
+Tool Browsing & Direct Execution: A dedicated interface to explore all available AI agent tools with detailed descriptions and parameters, allowing for direct manual execution for debugging or specific needs.
 
-Real-time Connection Status: Displays connection health, online user count, and available tool count.
+Real-time Status Indicators: Displays connection health, live online user count, and the number of available AI tools.
 
-Dark Mode: User-toggleable dark mode for enhanced readability.
-
-Clipboard Integration: Easily copy message content.
-
-Toast Notifications: Provides clear, ephemeral feedback for user actions and system status.
+User Experience Enhancements: Includes user-toggleable dark mode, seamless clipboard integration for message content, and informative toast notifications.
 
 Centralized Configuration: Utilizes dotenv for managing environment variables, facilitating easy deployment across different environments.
-
-API Endpoints: Provides dedicated endpoints for health checks, listing available tools, processing chat messages, and directly executing tools.
-
-In-Memory Chat History: Maintains a simple in-memory chat history for recent interactions.
 
 Technologies Used
 AI & Orchestration:
 
-Google Gemini API: Powers the natural language understanding, tool selection, and response generation.
+Google Gemini API: Powers the natural language understanding, intelligent tool selection, and sophisticated response generation.
 
-@modelcontextprotocol/sdk (MCP Client & Server): Facilitates structured communication between the AI model and the backend tools.
+@modelcontextprotocol/sdk (MCP Client & Server): The foundational protocol and SDK enabling structured, efficient communication between the AI model and the backend tools.
 
 Backend (API Gateway & Tool Orchestration):
 
-Node.js / Express.js: Core framework for the backend server.
+Node.js / Express.js: The core runtime and web application framework for the backend server.
 
-Socket.IO: For real-time, bidirectional communication (WebSockets).
+Socket.IO: For real-time, bidirectional communication via WebSockets.
 
-streamablehttp & sse (via MCP SDK): For efficient, real-time HTTP communication with the MCP server.
+streamablehttp & sse (via MCP SDK): Crucial for the efficient, stateless, and potentially real-time HTTP communication with the MCP server, allowing for streaming tool invocations and results.
 
-Zod: Schema validation library for API inputs.
+Zod: A TypeScript-first schema declaration and validation library for robust API input validation.
 
-pg (PostgreSQL client for Node.js): For interacting with the PostgreSQL database.
+pg (PostgreSQL client for Node.js): The library used for interacting with the PostgreSQL database.
 
-dotenv: For loading environment variables.
+dotenv: For loading environment variables from a .env file.
 
-helmet: For setting secure HTTP headers.
+helmet: Express middleware for setting various HTTP headers for security.
 
-cors: For enabling Cross-Origin Resource Sharing.
+cors: Node.js middleware for enabling Cross-Origin Resource Sharing.
 
-express-rate-limit: For protecting against brute-force attacks.
+express-rate-limit: Middleware to limit repeated requests to public APIs.
 
 Database:
 
-PostgreSQL: Relational database.
+PostgreSQL: A powerful, open-source relational database system.
 
-Neon: Serverless PostgreSQL service.
+Neon: A serverless PostgreSQL platform offering elasticity, branching, and scalability.
 
 Frontend:
 
-Next.js: React framework for building the user interface.
+Next.js: A React framework for building performant and scalable web applications.
 
-ShadCN UI: Reusable UI components for a modern design.
+ShadCN UI: A collection of reusable components built with Radix UI and Tailwind CSS, providing a modern and accessible design system.
 
-Recharts: For declarative charting (Bar, Pie, Line charts).
+Recharts: A composable charting library built with React and D3, used for dynamic data visualizations.
 
-Lucide React: For a comprehensive set of customizable SVG icons.
+Lucide React: A library of beautiful and customizable SVG icons.
 
 Design Architecture
-The system is designed with a clear separation of concerns across three main layers: Frontend, Backend (API Gateway, AI Agent & Tools), and Database.
+The system is engineered with a modular, multi-tier architecture, emphasizing clear separation of concerns, scalability, and real-time responsiveness.
 
 graph TD
-    A[User (Browser)] -->|Natural Language Query (HTTP/WS)| B(Next.js Frontend);
+    A[User (Web Browser)] -->|1. Natural Language Query & Actions (HTTP/WS)| B(Next.js Frontend);
 
     subgraph Backend API Gateway (Node.js/Express.js)
-        B -- HTTP/WS API Requests --> C(backend/server.js);
-        C -- Internal API Calls --> D(client/gemini-mcp-client.js);
-        C -- Internal API Calls --> E(mcp-express-server/index.js);
+        B -- RESTful API & WebSocket Communication --> C(backend/server.js);
+        C -- Internal Orchestration --> D(client/gemini-mcp-client.js);
+        C -- MCP Communication --> E(mcp-express-server/index.js);
         C -- Real-time Updates (Socket.IO) --> B;
     end
 
-    subgraph AI Orchestration & MCP Communication
-        D -- 1. Select Tool & Params (Gemini API) --> F[Google Gemini LLM];
-        F -- Tool Call Request (MCP Streamable HTTP/SSE) --> E;
+    subgraph AI Orchestration Layer
+        D -- 2. Tool Selection & Parameter Extraction (Gemini API) --> F[Google Gemini LLM];
+        F -- 3. Tool Invocation Request (MCP Streamable HTTP/SSE) --> E;
     end
 
     subgraph Database Interaction Layer
-        E -- 2. Execute Tool (e.g., get_customers) --> G{Database Tools (Node.js)};
-        G -- SQL Query --> H[PostgreSQL Database (Neon)];
+        E -- 4. Execute Business Tool (Node.js Function) --> G{Custom Business Tools};
+        G -- 5. SQL Query Execution --> H[PostgreSQL Database (Neon)];
     end
 
     H -->|SQL Results| G;
-    G -->|Tool Results (MCP Response)| E;
-    E -->|Formatted Response (Gemini API)| F;
-    F -->|Final Response| D;
+    G -->|Tool Results (Structured Data)| E;
+    E -->|MCP Response (Streamable HTTP/SSE)| F;
+    F -->|6. Formatted Natural Language Response| D;
     D -->|Processed Response| C;
     C -->|API Response (HTTP/WS)| B;
 
-    style C fill:#f9f,stroke:#333,stroke-width:2px
-    style D fill:#ccf,stroke:#333,stroke-width:2px
-    style E fill:#fcf,stroke:#333,stroke-width:2px
-    style F fill:#cfc,stroke:#333,stroke-width:2px
-    style G fill:#ffc,stroke:#333,stroke-width:2px
-    style H fill:#cff,stroke:#333,stroke-width:2px
+    style A fill:#e0f7fa,stroke:#00bcd4,stroke-width:2px
+    style B fill:#e8f5e9,stroke:#4caf50,stroke-width:2px
+    style C fill:#fff3e0,stroke:#ff9800,stroke-width:2px
+    style D fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px
+    style E fill:#e0f2f7,stroke:#03a9f4,stroke-width:2px
+    style F fill:#fce4ec,stroke:#e91e63,stroke-width:2px
+    style G fill:#fbe9e7,stroke:#ff5722,stroke-width:2px
+    style H fill:#e1f5fe,stroke:#2196f3,stroke-width:2px
 
 Component Breakdown:
-Next.js Frontend:
+Next.js Frontend (MCPChatAssistant.js):
 
-The primary user interface where users input natural language queries and view results.
+Role: The interactive user interface. It captures user input, displays chat history, renders dynamic data visualizations (tables, charts), and provides direct tool access.
 
-Built with React and styled using ShadCN UI components for a modern, responsive design.
+Technology: React, Next.js, ShadCN UI, Recharts, Lucide React.
 
-Communicates with the backend/server.js (API Gateway) via both standard HTTP requests and WebSockets (Socket.IO) for real-time interactions.
-
-Sends user inputs and receives processed responses from the AI agent.
-
-Renders dynamic content, including chat history, database query results, and interactive data visualizations (tables, bar charts, pie charts, line charts using Recharts).
-
-Manages UI state, dark mode, toast notifications, and provides a dedicated panel for browsing and directly executing available tools.
+Interaction: Communicates with the backend/server.js (API Gateway) via both traditional HTTP requests (for initial data/health checks) and persistent WebSocket (Socket.IO) connections for real-time chat messages and immediate tool execution feedback.
 
 backend/server.js (Express.js API Gateway):
 
-Acts as the central API endpoint for the frontend.
+Role: The central entry point for all frontend requests. It acts as a secure and rate-limited proxy, orchestrating communication between the frontend and the AI orchestration layer.
 
-Handles incoming HTTP requests (e.g., /api/chat, /api/tools, /api/health).
+Technology: Node.js, Express.js, Socket.IO, Helmet, CORS, Express-Rate-Limit, Dotenv.
 
-Manages WebSocket connections via Socket.IO, enabling real-time chat and tool execution.
+Interaction:
 
-Implements security best practices (Helmet, CORS, Rate Limiting).
+Receives user queries and direct tool execution requests from the frontend.
 
-Initializes and manages the lifecycle of the GeminiMCPClient.
+Manages WebSocket connections, broadcasting connection counts and handling real-time chat/tool events.
 
-Orchestrates the flow of data between the frontend and the GeminiMCPClient.
+Initializes and holds the GeminiMCPClient instance.
 
-Maintains a simple in-memory chat history.
+Forwards user inputs to the GeminiMCPClient for AI processing.
+
+Receives processed responses and tool results from the GeminiMCPClient and sends them back to the frontend.
+
+Provides health checks and a list of available tools to the frontend.
 
 client/gemini-mcp-client.js (Client-side AI Orchestrator within Backend):
 
-This module is instantiated and managed by backend/server.js.
+Role: The intelligence core of the application responsible for integrating Google Gemini with the MCP server to enable natural language database interaction.
 
-Initialization & Connection: Establishes and manages the connection to the mcp-express-server using StreamableHTTPClientTransport (with a fallback to SSEClientTransport).
+Technology: @modelcontextprotocol/sdk/client, GoogleGenerativeAI.
 
-Gemini Integration: Initializes the GoogleGenerativeAI client using the provided API key and model.
+Interaction:
 
-Tool Selection: Uses the Gemini LLM to analyze user input and determine which database tool (exposed by the MCP server) is most appropriate to call, along with the necessary parameters. This involves crafting a specific prompt to guide Gemini's decision-making.
+Connects to the mcp-express-server using StreamableHTTPClientTransport (with SSE fallback), establishing the MCP communication channel.
 
-Tool Execution: Calls the selected tool on the mcp-express-server via the MCP client.
+Tool Selection (Step 2): Sends the user's natural language query, along with the descriptions and schemas of all available database tools, to the Google Gemini LLM. Gemini's role here is critical: it analyzes the query, determines the most appropriate "business tool" to use, and extracts the necessary parameters.
 
-Response Formatting: Uses Gemini again to take the raw tool results and format them into a natural, conversational response suitable for the end-user.
+Tool Execution (Step 3): Invokes the selected tool on the mcp-express-server via the MCP callTool method, passing the extracted parameters.
 
-Direct Gemini Response: If no tool is deemed necessary, it can directly generate a response using Gemini.
+Response Formatting (Step 6): Takes the raw, structured results received from the executed tool and sends them back to the Google Gemini LLM for natural language generation, transforming technical data into a user-friendly conversational response. If no tool is needed, Gemini directly generates a response.
 
-mcp-express-server/index.js (MCP Server & Database Tools):
+mcp-express-server/index.js (MCP Server & Database Tools Host):
 
-This is a separate Express.js server that specifically hosts the Model Context Protocol (MCP) server.
+Role: Hosts the MCP server, which defines and exposes the specific "business tools" that interact directly with the database. This server acts as the bridge between the AI agent's tool calls and the actual database operations.
 
-It defines and exposes the various database interaction tools (e.g., get_customers, create_product, update_order, get_product_sales_summary).
+Technology: Node.js, Express.js, @modelcontextprotocol/sdk/server, Zod, pg.
 
-Each tool has a name, description (for the AI agent), and a Zod schema for input validation.
+Interaction:
 
-The tool's implementation directly executes SQL queries against the PostgreSQL database.
+Receives tool invocation requests from the GeminiMCPClient via Streamable HTTP (or SSE).
 
-Handles MCP-specific communication (POST for client-to-server, GET for server-to-client notifications via SSE, DELETE for session termination).
+Executes Business Tool (Step 4): Based on the tool name and parameters received, it calls the corresponding Node.js function (e.g., get_customers, create_order, get_product_sales_summary).
 
-Uses StreamableHTTPServerTransport to manage the HTTP/SSE communication with the GeminiMCPClient.
+SQL Query Execution (Step 5): These Node.js functions construct and execute parameterized SQL queries against the PostgreSQL database via lib/db.js.
+
+Returns the structured results of the database operation back to the GeminiMCPClient via MCP.
+
+Manages MCP sessions and transport.
 
 Google Gemini LLM:
 
-An external service that the GeminiMCPClient interacts with.
+Role: The external large language model service that provides the core AI capabilities for natural language understanding, tool selection, and human-like response generation.
 
-Responsible for Natural Language Understanding (NLU), deciding which tool to use, extracting parameters, and generating human-like responses.
+Interaction: Communicates with the GeminiMCPClient via its API.
 
 PostgreSQL Database (on Neon):
 
-The core data store for customers, products, and orders.
+Role: The persistent data store for all customer, product, and order information.
 
-Neon provides a serverless, scalable, and highly available PostgreSQL instance, making it ideal for dynamic applications.
+Technology: PostgreSQL, hosted on Neon.
 
-The lib/db.js utility (not provided, but inferred) handles the actual connection and execution of SQL queries.
+Interaction: Receives and processes SQL queries from the "Custom Business Tools" functions, returning the requested data.
 
 Flow of Operations:
-User Input: A user types a natural language query into the Next.js Frontend.
+User Initiates: A user types a natural language query (e.g., "Show me the total revenue from laptops last month") into the Next.js Frontend.
 
-Frontend to API Gateway: The frontend sends this query to the /api/chat endpoint on the backend/server.js (API Gateway) via HTTP or WebSocket.
+Frontend to API Gateway: The frontend sends this query to the /api/chat endpoint on the backend/server.js (API Gateway), typically over a WebSocket connection for real-time responsiveness.
 
-API Gateway to GeminiMCPClient: The backend/server.js passes the user's message to its internal GeminiMCPClient instance.
+API Gateway to AI Orchestrator: The backend/server.js passes the user's message to its internally managed client/gemini-mcp-client.js instance.
 
-Gemini Tool Selection: The GeminiMCPClient sends the user's query and a list of available tools (with their descriptions and schemas) to the Google Gemini LLM. Gemini determines the user's intent and identifies the most suitable tool and its parameters.
+AI Tool Selection (Gemini): The GeminiMCPClient sends the user's query, along with the descriptions and schemas of all available "business tools," to the Google Gemini LLM. Gemini interprets the intent and identifies the most relevant tool (e.g., get_product_sales_summary) and extracts parameters (e.g., product_name: "laptop", start_date: "last_month").
 
-Tool Execution Request (MCP): If a tool is selected, the GeminiMCPClient makes an MCP callTool request to the mcp-express-server/index.js. This communication occurs over Streamable HTTP or SSE.
+Tool Invocation (MCP Streamable HTTP): The GeminiMCPClient then makes an MCP callTool request to the dedicated mcp-express-server/index.js, specifying the chosen tool and its parameters. This leverages Streamable HTTP for efficient communication.
 
-Tool Execution (Database Interaction): The mcp-express-server receives the tool call, validates the parameters using Zod, and executes the corresponding database query via the lib/db.js utility against the PostgreSQL Database (on Neon).
+Tool Execution (Database Interaction): The mcp-express-server receives the MCP request, validates parameters using Zod, and executes the corresponding Node.js function within its "Custom Business Tools" layer. This function constructs and runs the necessary SQL query against the PostgreSQL Database (on Neon).
 
-Tool Results (MCP Response): The database results are returned to the tool function, which then sends them back to the GeminiMCPClient via the MCP response mechanism.
+Tool Results Return: The database returns the query results, which are then packaged by the executed tool and sent back to the GeminiMCPClient via the MCP response mechanism.
 
-Gemini Response Formatting: The GeminiMCPClient takes the raw tool results and the original user input, sends them back to the Google Gemini LLM for natural language formatting, transforming the structured data into a conversational response.
+AI Response Formatting (Gemini): The GeminiMCPClient takes the structured tool results and the original user query, and sends them back to the Google Gemini LLM. Gemini's task here is to transform the raw data into a natural, conversational, and easy-to-understand response for the end-user.
 
-Final Response to Frontend: The formatted response is sent back from the GeminiMCPClient to the backend/server.js.
+Final Response to Frontend: The formatted natural language response is sent from the GeminiMCPClient back to the backend/server.js.
 
-Frontend Display: The backend/server.js then sends this final response back to the Next.js Frontend (either via HTTP response or WebSocket message), which displays it to the user with dynamic rendering of tables and charts.
+Frontend Display & Visualization: The backend/server.js relays this final response to the Next.js Frontend (via WebSocket), which displays the conversational text and, crucially, automatically renders interactive charts (Bar, Pie, Line) or tables based on the structured data returned by the tool, providing a rich, visual insight.
 
-Chat History: The backend/server.js also saves the user's message and the AI's response to its in-memory chat history.
+Chat History & Status: The backend/server.js updates its in-memory chat history, and the frontend constantly displays connection status, online users, and available tools.
 
 Installation and Setup
 (This section would require more specific setup instructions for your entire project. Below is a placeholder.)
@@ -257,7 +263,7 @@ Create a PostgreSQL database instance on Neon.
 
 Obtain your connection string.
 
-Run your database schema migrations (e.g., using psql, sequelize-cli, knex, or a custom script) to create the customers, products, orders, and order_items tables with appropriate primary/foreign keys and cascade delete rules.
+Run your database schema migrations (e.g., using psql, sequelize-cli, knex, or a custom script) to create the customers, products, orders, and order_items tables with appropriate primary/foreign keys and cascade delete rules. Ensure CASCADE DELETE is set on foreign keys where appropriate (e.g., orders and order_items when a customer is deleted, order_items when a product is deleted).
 
 MCP Express Server Setup:
 
@@ -292,27 +298,25 @@ Open your Next.js frontend application in a web browser.
 
 Type a natural language query into the chat interface.
 
-Examples:
+Examples of Complex Business Queries:
 
-"Show me the top 5 customers by revenue."
+"Show me the top 5 customers by their total order value."
 
-"What products are currently out of stock?"
+"What products have less than 10 units in stock, and what's their average price?"
 
-"Create a new customer named 'Alice Wonderland' with email alice@example.com."
+"Create a new customer named 'Sarah Connor' with email sarah.c@example.com, and then create an order for her including 3 units of 'Product X' and 1 unit of 'Product Y'."
 
-"Update product ID 10 to have a price of 29.99."
+"Update the status of order ID 123 to 'completed' and recalculate its total amount."
 
-"Delete customer ID 101."
+"Provide a sales summary for all products, showing total quantity sold and total revenue, visualized as a bar chart."
 
-"Create an order for customer 5 with product ID 1 (quantity 2) and product ID 3 (quantity 1)."
+"Delete customer ID 101 and all their associated orders."
 
-"Summarize sales for 'Laptop'."
-
-The AI agent will process your request, interact with the database, and provide a conversational response.
+The AI agent will process your request, intelligently interact with the database using its specialized tools, and provide a conversational response, often accompanied by interactive data visualizations.
 
 Observe real-time updates and responses via the WebSocket connection.
 
-Explore the "Tools" tab to see all available database operations and even execute them directly.
+Explore the "Tools" tab to see all available database operations and even execute them directly for testing or specific needs.
 
 Toggle between light and dark mode for your preferred viewing experience.
 
