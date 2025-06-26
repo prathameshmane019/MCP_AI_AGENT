@@ -83,8 +83,8 @@ export default function MCPChatAssistant() {
         
         // Initialize WebSocket connection
         const io = await import('socket.io-client');
-        const socketConnection = io.default('process.env.NEXT_PUBLIC_BACKEND_URL');
-        
+        const socketConnection = io.default(process.env.NEXT_PUBLIC_BACKEND_URL );
+  
         socketConnection.on('connect', () => {
           setSocket(socketConnection);
           console.log('WebSocket connected');
