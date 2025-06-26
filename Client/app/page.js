@@ -73,7 +73,7 @@ export default function MCPChatAssistant() {
   const initializeConnection = async () => {
     try {
       // Check server health
-      const response = await fetch('http://localhost:3002/api/health');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/health`);
       const health = await response.json();
       
       if (health.success) {
@@ -83,7 +83,7 @@ export default function MCPChatAssistant() {
         
         // Initialize WebSocket connection
         const io = await import('socket.io-client');
-        const socketConnection = io.default('http://localhost:3002');
+        const socketConnection = io.default('process.env.NEXT_PUBLIC_BACKEND_URL');
         
         socketConnection.on('connect', () => {
           setSocket(socketConnection);
@@ -118,7 +118,7 @@ export default function MCPChatAssistant() {
 
   const fetchAvailableTools = async () => {
     try {
-      const response = await fetch('http://localhost:3002/api/tools');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/tools`);
       const data = await response.json();
       if (data.success) {
         setAvailableTools(data.tools);
@@ -169,7 +169,7 @@ export default function MCPChatAssistant() {
         socket.emit('chat', { message: userMessage });
       } else {
         // Fallback to HTTP API
-        const response = await fetch('http://localhost:3002/api/chat', {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/chat`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -213,7 +213,7 @@ export default function MCPChatAssistant() {
       if (socket) {
         socket.emit('executeTool', { toolName, parameters });
       } else {
-        const response = await fetch(`http://localhost:3002/api/tools/${toolName}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/tools/${toolName}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
