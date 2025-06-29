@@ -256,7 +256,7 @@ export default function MCPChatAssistant() {
     if (!tableData) return null;
 
     const renderTable = () => (
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto ">
         <table className="min-w-full border-collapse border border-gray-300 dark:border-gray-600">
           <thead>
             <tr className="bg-gray-50 dark:bg-gray-800">
@@ -332,7 +332,7 @@ export default function MCPChatAssistant() {
     );
 
     return (
-      <Card className="mt-4">
+      <Card className="mt-4 shadow-sm">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
@@ -480,7 +480,7 @@ export default function MCPChatAssistant() {
     return (
       <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
         <Card className={`
-          max-w-[90%] shadow-lg border-0
+          max-w-[90%] shadow-sm border-0
           ${isUser
             ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white'
             : isSystem
@@ -613,10 +613,10 @@ export default function MCPChatAssistant() {
   );
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-gray-50'} transition-colors duration-200`}>
-      <div className="container mx-auto h-screen p-4 flex flex-col">
+    <div className={`min-h-screen mx-10 ${darkMode ? 'dark bg-gray-900' : 'bg-gray-50'} transition-colors duration-200`}>
+      <div className="container mx-auto h-screen p-2 flex flex-col">
         {/* Header */}
-        <Card className="mb-4 shadow-lg">
+        <Card className="mb-2 shadow-sm">
           <CardHeader className="pb-4">
             <div className="flex justify-between items-center">
               <div className="space-y-2">
@@ -688,7 +688,7 @@ export default function MCPChatAssistant() {
             <div className="flex-1 mt-4 overflow-hidden">
               <TabsContent value="chat" className="h-full">
                 <Card className="h-full flex flex-col">
-                  <CardContent className="flex-1 p-6 overflow-hidden">
+                  <CardContent className="flex-1 p-1 overflow-hidden">
                     <ScrollArea className="h-full" ref={chatContainerRef}>
                       {messages.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-center space-y-6">
@@ -730,7 +730,7 @@ export default function MCPChatAssistant() {
           </Tabs>
         </div>
         {/* Input Area */}
-        <Card className="mt-4 shadow-lg">
+        <Card className="mt-4 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex-1">
