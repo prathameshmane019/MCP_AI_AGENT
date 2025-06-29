@@ -54,7 +54,7 @@ export const ExpressHttpStreamableMcpServer = (options, setupCb) => {
       // Check for existing session ID
       const sessionId = req.headers['mcp-session-id']
       let transport;
-      console.log(`header ID from headers: ${req.headers['mcp-session-id']}`);
+       
 
       if (sessionId && transports[sessionId]) {
         // Reuse existing transport

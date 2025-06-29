@@ -52,7 +52,7 @@ async function initializeMCPClient() {
     }
 
     mcpClient = new GeminiMCPClient({
-      mcpBaseUrl: process.env.MCP_BASE_URL || "http://localhost:3001/mcp",
+      mcpBaseUrl: process.env.MCP_BASE_URL ,
       geminiApiKey: process.env.GEMINI_API_KEY,
       geminiModel: process.env.GEMINI_MODEL || "gemini-1.5-flash",
       debug: process.env.NODE_ENV === 'development'

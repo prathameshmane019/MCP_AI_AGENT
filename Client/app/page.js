@@ -9,21 +9,21 @@ import {
   Code,
   MessageSquare,
   Zap,
-  Users, 
+  Users,
   X,
   CheckCircle,
   XCircle,
   AlertCircle,
   Clock,
-  Database, 
+  Database,
   Table,
-  BarChart3, 
+  BarChart3,
   Bot,
   User,
   Copy,
   Check,
-  Terminal, 
-  TrendingUp, 
+  Terminal,
+  TrendingUp,
 } from 'lucide-react';
 
 // Charts
@@ -35,7 +35,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
@@ -52,7 +51,7 @@ export default function MCPChatAssistant() {
   const [copiedMessageId, setCopiedMessageId] = useState(null);
   const [activeTab, setActiveTab] = useState('chat');
   const [socket, setSocket] = useState(null);
-  
+
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const chatContainerRef = useRef(null);
@@ -75,25 +74,25 @@ export default function MCPChatAssistant() {
       // Check server health
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/health`);
       const health = await response.json();
-      
+
       if (health.success) {
         setIsConnected(true);
         fetchAvailableTools();
         showToastMessage('Connected to MCP server', 'success');
-        
+
         // Initialize WebSocket connection
         const io = await import('socket.io-client');
-        const socketConnection = io.default(process.env.NEXT_PUBLIC_BACKEND_URL );
-  
+        const socketConnection = io.default(process.env.NEXT_PUBLIC_BACKEND_URL);
+
         socketConnection.on('connect', () => {
           setSocket(socketConnection);
           console.log('WebSocket connected');
         });
-        
+
         socketConnection.on('connectionCount', (count) => {
           setConnectionCount(count);
         });
-        
+
         socketConnection.on('chatResponse', (response) => {
           setIsLoading(false);
           addMessage({
@@ -101,7 +100,7 @@ export default function MCPChatAssistant() {
             ...response
           });
         });
-        
+
         socketConnection.on('toolResponse', (response) => {
           setIsLoading(false);
           addMessage({
@@ -179,7 +178,7 @@ export default function MCPChatAssistant() {
 
         const data = await response.json();
         setIsLoading(false);
-        
+
         addMessage({
           type: 'assistant',
           ...data
@@ -199,44 +198,6 @@ export default function MCPChatAssistant() {
     }
   };
 
-  const executeDirectTool = async (toolName, parameters = {}) => {
-    if (!isConnected) return;
-
-    setIsLoading(true);
-    addMessage({
-      type: 'system',
-      content: `Executing tool: ${toolName}`,
-      toolUsed: toolName
-    });
-
-    try {
-      if (socket) {
-        socket.emit('executeTool', { toolName, parameters });
-      } else {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/tools/${toolName}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ parameters })
-        });
-
-        const data = await response.json();
-        setIsLoading(false);
-        
-        addMessage({
-          type: 'tool',
-          ...data
-        });
-      }
-    } catch (error) {
-      setIsLoading(false);
-      console.error('Tool execution error:', error);
-      showToastMessage('Failed to execute tool', 'error');
-    }
-
-    setShowToolsMenu(false);
-  };
 
   const parseTableData = (text) => {
     try {
@@ -244,7 +205,7 @@ export default function MCPChatAssistant() {
       if (Array.isArray(data) && data.length > 0) {
         return data;
       }
-    } catch (error) { 
+    } catch (error) {
     }
     return null;
   };
@@ -268,7 +229,7 @@ export default function MCPChatAssistant() {
         acc[item.state] = (acc[item.state] || 0) + 1;
         return acc;
       }, {});
-      
+
       return Object.entries(stateCount).map(([state, count]) => ({
         name: state,
         value: count
@@ -467,7 +428,7 @@ export default function MCPChatAssistant() {
 
     const getToolDetails = () => {
       if (!message.toolUsed) return null;
-      
+
       return (
         <div className="mt-3 space-y-2">
           <div className="flex flex-wrap gap-2">
@@ -482,13 +443,13 @@ export default function MCPChatAssistant() {
               </Badge>
             )}
           </div>
-          
+
           {message.toolParameters && Object.keys(message.toolParameters).length > 0 && (
             <div className="text-xs opacity-70">
               <strong>Parameters:</strong> {JSON.stringify(message.toolParameters, null, 2)}
             </div>
           )}
-          
+
           {message.reasoning && (
             <div className="text-xs opacity-70 mt-2">
               <strong>Reasoning:</strong> {message.reasoning}
@@ -500,14 +461,14 @@ export default function MCPChatAssistant() {
 
     const getDataVisualization = () => {
       if (!message.toolResult?.content) return null;
-      
+
       const content = message.toolResult.content[0];
       if (content?.text) {
         const tableData = parseTableData(content.text);
         if (tableData) {
           return (
-            <DataVisualization 
-              data={content.text} 
+            <DataVisualization
+              data={content.text}
               title={`${message.toolUsed} Results`}
             />
           );
@@ -520,17 +481,17 @@ export default function MCPChatAssistant() {
       <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
         <Card className={`
           max-w-[90%] shadow-lg border-0
-          ${isUser 
-            ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white' 
-            : isSystem 
-            ? 'bg-gradient-to-br from-orange-500 to-orange-600 text-white'
-            : isTool
-            ? 'bg-gradient-to-br from-purple-500 to-purple-600 text-white'
-            : isError
-            ? 'bg-gradient-to-br from-red-500 to-red-600 text-white'
-            : darkMode 
-            ? 'bg-gray-800 border-gray-700 text-gray-100' 
-            : 'bg-white border-gray-200 text-gray-900'
+          ${isUser
+            ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white'
+            : isSystem
+              ? 'bg-gradient-to-br from-orange-500 to-orange-600 text-white'
+              : isTool
+                ? 'bg-gradient-to-br from-purple-500 to-purple-600 text-white'
+                : isError
+                  ? 'bg-gradient-to-br from-red-500 to-red-600 text-white'
+                  : darkMode
+                    ? 'bg-gray-800 border-gray-700 text-gray-100'
+                    : 'bg-white border-gray-200 text-gray-900'
           }
         `}>
           <CardContent className="p-4">
@@ -548,9 +509,9 @@ export default function MCPChatAssistant() {
                 <div className="text-sm leading-relaxed whitespace-pre-wrap">
                   {getMessageContent()}
                 </div>
-                
+
                 {getToolDetails()}
-                
+
                 {message.error && (
                   <Alert className="mt-2">
                     <AlertCircle className="h-4 w-4" />
@@ -559,7 +520,7 @@ export default function MCPChatAssistant() {
                     </AlertDescription>
                   </Alert>
                 )}
-                
+
                 <div className="flex items-center justify-between">
                   <span className="text-xs opacity-70">
                     {new Date(message.timestamp).toLocaleTimeString()}
@@ -579,7 +540,7 @@ export default function MCPChatAssistant() {
                 </div>
               </div>
             </div>
-            
+
             {getDataVisualization()}
           </CardContent>
         </Card>
@@ -605,8 +566,8 @@ export default function MCPChatAssistant() {
           {getToastIcon()}
           <AlertDescription className="flex items-center justify-between">
             <span>{showToast.message}</span>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
               onClick={() => setShowToast(null)}
               className="h-6 w-6 p-0 ml-2"
@@ -634,13 +595,6 @@ export default function MCPChatAssistant() {
               <Card key={index} className="p-3">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-medium">{tool.name}</h4>
-                  <Button
-                    size="sm"
-                    onClick={() => executeDirectTool(tool.name, {})}
-                    disabled={!isConnected}
-                  >
-                    Execute
-                  </Button>
                 </div>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                   {tool.description}
@@ -657,7 +611,7 @@ export default function MCPChatAssistant() {
       </CardContent>
     </Card>
   );
- 
+
   return (
     <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-gray-50'} transition-colors duration-200`}>
       <div className="container mx-auto h-screen p-4 flex flex-col">
@@ -670,7 +624,7 @@ export default function MCPChatAssistant() {
                   <div className="p-2 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600">
                     <MessageSquare className="text-white" size={24} />
                   </div>
-                  <CardTitle className="text-2xl">MCP Chat Assistant</CardTitle>
+                  <CardTitle className="text-2xl">DataFlux AI</CardTitle>
                 </div>
                 <div className="flex items-center gap-6 text-sm">
                   <div className="flex items-center gap-2">
@@ -695,7 +649,7 @@ export default function MCPChatAssistant() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
@@ -704,7 +658,7 @@ export default function MCPChatAssistant() {
                 >
                   {darkMode ? <Sun size={20} /> : <Moon size={20} />}
                 </Button>
-                
+
                 <Button
                   variant="ghost"
                   size="sm"
@@ -730,7 +684,7 @@ export default function MCPChatAssistant() {
                 Tools
               </TabsTrigger>
             </TabsList>
-            
+
             <div className="flex-1 mt-4 overflow-hidden">
               <TabsContent value="chat" className="h-full">
                 <Card className="h-full flex flex-col">
@@ -746,7 +700,7 @@ export default function MCPChatAssistant() {
                               Welcome to MCP Chat Assistant
                             </h2>
                             <p className="max-w-md text-gray-600 dark:text-gray-300">
-                              Start a conversation! I can help you with data queries, calculations, 
+                              Start a conversation! I can help you with data queries, calculations,
                               text analysis, and more. Try asking me something like:
                             </p>
                             <div className="space-y-2 text-sm text-blue-500">
@@ -768,14 +722,13 @@ export default function MCPChatAssistant() {
                     </ScrollArea>
                   </CardContent>
                 </Card>
-              </TabsContent> 
+              </TabsContent>
               <TabsContent value="tools" className="h-full">
                 <ToolsPanel />
               </TabsContent>
             </div>
           </Tabs>
         </div>
-
         {/* Input Area */}
         <Card className="mt-4 shadow-lg">
           <CardContent className="p-4">
