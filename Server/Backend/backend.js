@@ -4,7 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit'; 
 import { config } from 'dotenv';
-import GeminiMCPClient from "./GeminiMCPClient.js"
+import { GeminiMCPClient } from './GeminiMCPClient.js';
 // Load environment variables
 config();
 
@@ -16,7 +16,7 @@ const PORT = process.env.BACKEND_PORT || 3002;
 app.use(helmet());
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://ai-postgres.vercel.app',
+  origin: process.env.FRONTEND_URL || 'https://ai-postgres.vercel.app' ,
   credentials: true,
   methods: ['GET', 'POST', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -54,7 +54,7 @@ async function initializeMCPClient() {
     mcpClient = new GeminiMCPClient({
       mcpBaseUrl: process.env.MCP_BASE_URL ,
       geminiApiKey: process.env.GEMINI_API_KEY,
-      geminiModel: process.env.GEMINI_MODEL || "gemini-1.5-flash",
+      geminiModel: process.env.GEMINI_MODEL || "gemini-2.5-flash",
       debug: process.env.NODE_ENV === 'development'
     });
 

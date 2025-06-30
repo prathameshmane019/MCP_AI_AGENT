@@ -17,7 +17,7 @@ export class GeminiMCPClient {
     this.config = {
       mcpBaseUrl: config.mcpBaseUrl || "http://localhost:3001/mcp",
       geminiApiKey: config.geminiApiKey || process.env.GEMINI_API_KEY,
-      geminiModel: config.geminiModel || "gemini-1.5-flash",
+      geminiModel: config.geminiModel || "gemini-2.5-flash",
       debug: config.debug || false,
       ...config
     };
@@ -33,7 +33,7 @@ export class GeminiMCPClient {
     try {
       const genAI = new GoogleGenerativeAI(this.config.geminiApiKey);
       this.geminiClient = genAI.getGenerativeModel({ model: this.config.geminiModel });
-      this.log("Gemini client initialized successfully");
+      this.log("Gemini client initialized successfully to model ", this.config.geminiModel);
     } catch (error) {
       console.error("Failed to initialize Gemini client:", error);
       throw error;
