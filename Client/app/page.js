@@ -430,7 +430,7 @@ export default function MCPChatAssistant() {
       if (!message.toolUsed) return null;
 
       return (
-        <div className="mt-3 space-y-2">
+        <div className="mt-1 space-y-1">
           <div className="flex flex-wrap gap-2">
             <Badge variant="secondary" className="flex items-center gap-1">
               <Zap size={12} />
@@ -613,14 +613,14 @@ export default function MCPChatAssistant() {
   );
 
   return (
-    <div className={`min-h-screen mx-10 ${darkMode ? 'dark bg-gray-900' : 'bg-gray-50'} transition-colors duration-200`}>
+    <div className={`min-h-screen mx-[10%] ${darkMode ? 'dark bg-gray-900' : 'bg-gray-50'} transition-colors duration-200`}>
       <div className="container mx-auto h-screen p-2 flex flex-col">
         {/* Header */}
-        <Card className="mb-2 shadow-sm">
-          <CardHeader className="pb-4">
+        <Card className=" mb-2 shadow-sm">
+          <CardHeader className=" ">
             <div className="flex justify-between items-center">
-              <div className="space-y-2">
-                <div className="flex items-center gap-3">
+              <div className=" ">
+                <div className="flex items-center gap-2">
                   <div className="p-2 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600">
                     <MessageSquare className="text-white" size={24} />
                   </div>
@@ -685,13 +685,13 @@ export default function MCPChatAssistant() {
               </TabsTrigger>
             </TabsList>
 
-            <div className="flex-1 mt-4 overflow-hidden">
+            <div className="flex-1  overflow-hidden">
               <TabsContent value="chat" className="h-full">
                 <Card className="h-full flex flex-col">
                   <CardContent className="flex-1 p-1 overflow-hidden">
                     <ScrollArea className="h-full" ref={chatContainerRef}>
                       {messages.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-center space-y-6">
+                        <div className="h-full flex flex-col items-center justify-center text-center space-y-2">
                           <div className="p-4 rounded-full bg-gradient-to-r from-blue-500 to-purple-600">
                             <MessageSquare className="text-white" size={48} />
                           </div>
@@ -700,18 +700,17 @@ export default function MCPChatAssistant() {
                               Welcome to MCP Chat Assistant
                             </h2>
                             <p className="max-w-md text-gray-600 dark:text-gray-300">
-                              Start a conversation! I can help you with data queries, calculations,
-                              text analysis, and more. Try asking me something like:
+                             Try asking me something like:
                             </p>
                             <div className="space-y-2 text-sm text-blue-500">
                               <p>&quot;Show all products data&quot;</p>
                               <p>&quot;Get all customers&quot;</p>
-                              <p>&quot;Display orders with charts&quot;</p>
+                              <p>&quot;Display orders by customers</p>
                             </div>
                           </div>
                         </div>
                       ) : (
-                        <div className="space-y-1">
+                        <div className="">
                           {messages.map((message) => (
                             <MessageComponent key={message.id} message={message} />
                           ))}
@@ -729,10 +728,8 @@ export default function MCPChatAssistant() {
             </div>
           </Tabs>
         </div>
-        {/* Input Area */}
-        <Card className="mt-4 shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
+        {/* Input Area */} 
+            <div className="flex items-center my-2 gap-3">
               <div className="flex-1">
                 <Input
                   ref={inputRef}
@@ -758,9 +755,7 @@ export default function MCPChatAssistant() {
                   </>
                 )}
               </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </div> 
       </div>
 
       <ToastComponent />
