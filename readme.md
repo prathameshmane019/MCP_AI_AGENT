@@ -25,14 +25,14 @@ A cutting-edge application that empowers users to perform sophisticated queries,
 
 ### Architecture Diagram
 
-![Architecture](./public/architecture.png)
+<img src="./public/thumbnail.png" width="700"/>
 
-### Generated Thumbnail
 
-![Thumbnail](./public/thumbnail.png)
+<img src="./public/architecture.png" width="700"/>
+
  
 
-![DataBase Schema](./public/database.png)
+<img src="./public/database.png" width="700"/>
 
 ---
 
